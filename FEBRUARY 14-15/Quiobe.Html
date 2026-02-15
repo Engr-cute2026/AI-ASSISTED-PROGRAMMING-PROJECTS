@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>3D Structure Model (Frame)</title>
+  <style>
+    html, body { margin:0; height:100%; overflow:hidden; font-family: system-ui, Arial; }
+
+    #ui{
+      position: fixed; top:12px; left:12px; z-index: 99999;
+      background: rgba(255,255,255,0.92);
+      padding: 10px 12px; border-radius: 10px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+      width: 320px;
+      pointer-events: auto;
+    }
+    #ui h3 { margin:0 0 6px; font-size:14px; }
+    #ui .row { display:flex; gap:8px; margin:6px 0; align-items:center; }
+    #ui label { width:125px; font-size:12px; color:#222; }
+    #ui input { flex:1; padding:6px 8px; border:1px solid #ddd; border-radius:8px; }
+    #ui button{
+      width:100%; padding:8px 10px; border:0; border-radius:10px;
+      background:#111; color:#fff; cursor:pointer; margin-top:8px;
+    }
+    #status{ margin-top:8px; font-size:12px; color:#111; }
+    #hint{ margin-top:6px; font-size:12px; color:#333; line-height:1.35; }
+
+    canvas{ position:fixed; inset:0; z-index:0; }
+  </style>
+</head>
+<body>
+  <div id="ui">
+    <h3>3D Frame Generator</h3>
+
+    <div class="row"><label>Bays X (count)</label><input id="baysX" type="number" min="1" step="1" value="2"/></div>
+    <div class="row"><label>Bays Z (count)</label><input id="baysZ" type="number" min="1" step="1" value="2"/></div>
+    <div class="row"><label>Storeys (count)</label><input id="storeys" type="number" min="1" step="1" value="2"/></div>
+
+    <div class="row"><label>Bay length X (m)</label><input id="bayLenX" type="number" min="0.5" step="0.1" value="7"/></div>
+    <div class="row"><label>Bay length Z (m)</label><input id="bayLenZ" type="number" min="0.5" step="0.1" value="4"/></div>
+    <div class="row"><label>Storey height (m)</label><input id="storeyH" type="number" min="0.5" step="0.1" value="3.2"/></div>
+
+    <div class="row"><label>Column size (m)</label><input id="colSize" type="number" min="0.05" step="0.01" value="0.50"/></div>
+    <div class="row"><label>Beam size (m)</label><input id="beamSize" type="number" min="0.05" step="0.01" value="0.50"/></div>
+
+    <button id="regen" type="button">Regenerate Frame</button>
+
+    <div id="status">Status: loading…</div>
+    <div id="hint"><b>Mouse:</b> drag = rotate, scroll = zoom</div>
+  </div>
+
+  <!-- Three.js only (offline-friendly if CDN works). If your CDN fails, download three.min.js locally and link it. -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+
+  <script>
+    const statusEl = document.getElementById("status");
+
+    if (!window.THREE) {
+      statusEl.textContent = "Status: ERROR — Three.js did not load (CDN blocked/offline).";
+      alert("Three.js did not load. Check internet or firewall/CDN access.");
+      throw new Error("THREE not found");
+    }
+
+    // ---------- Scene ----------
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xf3f5f7);
+
+    const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 5000);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    document.body.appendChild(renderer.domElement);
+
+    renderer.domElement.style.position = "fixed";
+    renderer.domElement.style.inset = "0";
+    renderer.domElement.style.zIndex = "0";
+
+    // Lights
+    scene.add(new THREE.AmbientLight(0xffffff, 0.65));
+    const dir = new THREE.DirectionalLight(0xffffff, 0.85);
+    dir.position.set(30, 40, 20);
+    scene.add(dir);
+
+    // Ground grid (at y = 0)
+    const grid = new THREE.GridHelper(120, 120, 0x999999, 0xdddddd);
+    grid.position.y = 0;
+    scene.add(grid);
+
+    // Axis helper at origin (0,0,0)
+    const axes = new THREE.AxesHelper(6);
+    axes.position.set(0, 0, 0);
+    scene.add(axes);
+
+    // Structure group
+    const structure = new THREE.Group();
+    scene.add(structure);
+
+    // ---------- Materials (direction-coded) ----------
+    const matColumn = new THREE.MeshStandardMaterial({ color: 0x2d3436, metalness: 0.1, roughness: 0.65 }); // black-ish
+    const matBeamX  = new THREE.MeshStandardMaterial({ color: 0x0984e3, metalness: 0.05, roughness: 0.55 }); // blue
+    const matBeamZ  = new THREE.MeshStandardMaterial({ color: 0x00b894, metalness: 0.05, roughness: 0.55 }); // green
+    const nodeMat   = new THREE.MeshBasicMaterial({ color: 0xff3b30 }); // red
+
+    // ---------- Member + Node creators ----------
+    function addMember(p1, p2, thickness, material) {
+      const d = new THREE.Vector3().subVectors(p2, p1);
+      const L = d.length();
+      if (L < 1e-9) return;
+
+      const geom = new THREE.BoxGeometry(thickness, L, thickness);
+      const mesh = new THREE.Mesh(geom, material);
+
+      mesh.position.copy(new THREE.Vector3().addVectors(p1, p2).multiplyScalar(0.5));
+      const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0), d.clone().normalize());
+      mesh.setRotationFromQuaternion(q);
+
+      structure.add(mesh);
+    }
+
+    function addNode(pt, size=0.10) {
+      const sphere = new THREE.Mesh(new THREE.SphereGeometry(size, 12, 12), nodeMat);
+      sphere.position.copy(pt);
+      structure.add(sphere);
+    }
+
+    // ---------- UI reading ----------
+    function readParams() {
+      const num = (id) => Number(document.getElementById(id).value);
+      return {
+        baysX: Math.max(1, Math.floor(num("baysX"))),
+        baysZ: Math.max(1, Math.floor(num("baysZ"))),
+        storeys: Math.max(1, Math.floor(num("storeys"))),
+        bayLenX: Math.max(0.5, num("bayLenX")),
+        bayLenZ: Math.max(0.5, num("bayLenZ")),
+        storeyH: Math.max(0.5, num("storeyH")),
+        colSize: Math.max(0.05, num("colSize")),
+        beamSize: Math.max(0.05, num("beamSize"))
+      };
+    }
+
+    // ---------- Build frame ----------
+    let lastCounts = { nodeCount: 0, memberCount: 0 };
+
+    function buildFrame(p) {
+      structure.clear();
+      lastCounts = { nodeCount: 0, memberCount: 0 };
+
+      // Create node grid
+      const nodes = [];
+      for (let ix = 0; ix <= p.baysX; ix++) {
+        nodes[ix] = [];
+        for (let iz = 0; iz <= p.baysZ; iz++) {
+          nodes[ix][iz] = [];
+          for (let iy = 0; iy <= p.storeys; iy++) {
+            const pt = new THREE.Vector3(ix*p.bayLenX, iy*p.storeyH, iz*p.bayLenZ);
+            nodes[ix][iz][iy] = pt;
+            addNode(pt, Math.max(0.06, Math.min(0.14, p.beamSize * 0.25)));
+            lastCounts.nodeCount++;
+          }
+        }
+      }
+
+      // Columns
+      for (let ix = 0; ix <= p.baysX; ix++)
+        for (let iz = 0; iz <= p.baysZ; iz++)
+          for (let iy = 0; iy < p.storeys; iy++) {
+            addMember(nodes[ix][iz][iy], nodes[ix][iz][iy+1], p.colSize, matColumn);
+            lastCounts.memberCount++;
+          }
+
+      // Beams X (blue)
+      for (let iy = 1; iy <= p.storeys; iy++)
+        for (let iz = 0; iz <= p.baysZ; iz++)
+          for (let ix = 0; ix < p.baysX; ix++) {
+            addMember(nodes[ix][iz][iy], nodes[ix+1][iz][iy], p.beamSize, matBeamX);
+            lastCounts.memberCount++;
+          }
+
+      // Beams Z (green)
+      for (let iy = 1; iy <= p.storeys; iy++)
+        for (let ix = 0; ix <= p.baysX; ix++)
+          for (let iz = 0; iz < p.baysZ; iz++) {
+            addMember(nodes[ix][iz][iy], nodes[ix][iz+1][iy], p.beamSize, matBeamZ);
+            lastCounts.memberCount++;
+          }
+
+      // IMPORTANT: Keep base at y=0.
+      // We ONLY center the structure in X and Z, not Y.
+      const box = new THREE.Box3().setFromObject(structure);
+      const center = box.getCenter(new THREE.Vector3());
+
+      structure.position.x -= center.x;
+      structure.position.z -= center.z;
+      // DO NOT change structure.position.y
+
+      // After XZ-centering, recompute box for camera fit
+      const box2 = new THREE.Box3().setFromObject(structure);
+      const size = box2.getSize(new THREE.Vector3());
+      const diag = size.length();
+
+      orbit.radius = Math.max(10, diag * 1.3);
+      orbit.target.set(0, Math.max(0.5, size.y * 0.35), 0); // aim a bit above base for nicer view
+
+      statusEl.textContent =
+        `Status: generated — nodes: ${lastCounts.nodeCount} — members: ${lastCounts.memberCount}`;
+    }
+
+    // ---------- Simple orbit camera (no OrbitControls) ----------
+    const orbit = {
+      yaw: Math.PI/4,
+      pitch: Math.PI/10,
+      radius: 25,
+      target: new THREE.Vector3(0, 1, 0)
+    };
+
+    function updateCameraFromOrbit() {
+      const cp = Math.cos(orbit.pitch), sp = Math.sin(orbit.pitch);
+      const cy = Math.cos(orbit.yaw),   sy = Math.sin(orbit.yaw);
+
+      const x = orbit.target.x + orbit.radius * cp * cy;
+      const y = orbit.target.y + orbit.radius * sp;
+      const z = orbit.target.z + orbit.radius * cp * sy;
+
+      camera.position.set(x, y, z);
+      camera.lookAt(orbit.target);
+    }
+
+    let dragging = false;
+    let lastX = 0, lastY = 0;
+
+    renderer.domElement.addEventListener("mousedown", (e) => {
+      dragging = true;
+      lastX = e.clientX; lastY = e.clientY;
+    });
+
+    window.addEventListener("mouseup", () => dragging = false);
+
+    window.addEventListener("mousemove", (e) => {
+      if (!dragging) return;
+      const dx = e.clientX - lastX;
+      const dy = e.clientY - lastY;
+      lastX = e.clientX; lastY = e.clientY;
+
+      orbit.yaw   -= dx * 0.005;
+      orbit.pitch -= dy * 0.005;
+      orbit.pitch = Math.max(-1.35, Math.min(1.35, orbit.pitch));
+    });
+
+    renderer.domElement.addEventListener("wheel", (e) => {
+      orbit.radius *= (e.deltaY > 0) ? 1.08 : 0.92;
+      orbit.radius = Math.max(2, Math.min(2000, orbit.radius));
+    }, { passive: true });
+
+    // ---------- Button ----------
+    document.getElementById("regen").addEventListener("click", () => {
+      statusEl.textContent = "Status: regenerating…";
+      buildFrame(readParams());
+    });
+
+    // ---------- Init ----------
+    buildFrame(readParams());
+    updateCameraFromOrbit();
+
+    window.addEventListener("resize", () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    (function animate(){
+      requestAnimationFrame(animate);
+      updateCameraFromOrbit();
+      renderer.render(scene, camera);
+    })();
+  </script>
+</body>
+</html>
