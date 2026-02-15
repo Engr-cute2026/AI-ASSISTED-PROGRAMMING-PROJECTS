@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>3D Structure Model</title>
+    <style>
+        body { margin: 0; overflow: hidden; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+
+<!-- Three.js CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+<script>
+// Scene
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xf0f0f0);
+
+// Camera
+const camera = new THREE.PerspectiveCamera(
+    60,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    1000
+);
+camera.position.set(10, 10, 15);
+
+// Renderer
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+// Controls
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+
+// Light
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+scene.add(ambientLight);
+
+const directionalLight = new THREE.DirectionalLight(0xffffff, 0.6);
+directionalLight.position.set(10, 20, 10);
+scene.add(directionalLight);
+
+// Grid Helper
+const grid = new THREE.GridHelper(20, 20);
+scene.add(grid);
+
+// Material
+const columnMaterial = new THREE.MeshStandardMaterial({ color: 0x3366cc });
+const beamMaterial = new THREE.MeshStandardMaterial({ color: 0xcc3333 });
+
+// Column Geometry
+const columnGeometry = new THREE.BoxGeometry(0.5, 6, 0.5);
+
+// Create Columns
+const columnPositions = [
+    [-5, 3, -5],
+    [5, 3, -5],
+    [-5, 3, 5],
+    [5, 3, 5]
+];
+
+columnPositions.forEach(pos => {
+    const column = new THREE.Mesh(columnGeometry, columnMaterial);
+    column.position.set(pos[0], pos[1], pos[2]);
+    scene.add(column);
+});
+
+// Beam Geometry
+const beamGeometryX = new THREE.BoxGeometry(10.5, 0.5, 0.5);
+const beamGeometryZ = new THREE.BoxGeometry(0.5, 0.5, 10.5);
+
+// Create Beams (Top Frame)
+const beam1 = new THREE.Mesh(beamGeometryX, beamMaterial);
+beam1.position.set(0, 6, -5);
+scene.add(beam1);
+
+const beam2 = new THREE.Mesh(beamGeometryX, beamMaterial);
+beam2.position.set(0, 6, 5);
+scene.add(beam2);
+
+const beam3 = new THREE.Mesh(beamGeometryZ, beamMaterial);
+beam3.position.set(-5, 6, 0);
+scene.add(beam3);
+
+const beam4 = new THREE.Mesh(beamGeometryZ, beamMaterial);
+beam4.position.set(5, 6, 0);
+scene.add(beam4);
+
+// Resize Handler
+window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// Animation Loop
+function animate() {
+    requestAnimationFrame(animate);
+    controls.update();
+    renderer.render(scene, camera);
+}
+
+animate();
+</script>
+
+</body>
+</html>
