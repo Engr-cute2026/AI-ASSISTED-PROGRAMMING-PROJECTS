@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Structural Beam Analyzer</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #00ff41;
+            --secondary: #0066ff;
+            --accent: #ff006e;
+            --bg-dark: #0a0e27;
+            --bg-card: #131829;
+            --text: #e0e7ff;
+            --text-dim: #8b93b8;
+            --border: #1e2642;
+            --grid: rgba(0, 255, 65, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            background: var(--bg-dark);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Animated grid background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                repeating-linear-gradient(0deg, transparent, transparent 49px, var(--grid) 49px, var(--grid) 50px),
+                repeating-linear-gradient(90deg, transparent, transparent 49px, var(--grid) 49px, var(--grid) 50px);
+            z-index: 0;
+            animation: gridScroll 20s linear infinite;
+        }
+
+        @keyframes gridScroll {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(50px, 50px); }
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            animation: slideDown 0.6s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 3.5rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.02em;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            animation: glow 3s ease-in-out infinite;
+        }
+
+        @keyframes glow {
+            0%, 100% { filter: drop-shadow(0 0 20px rgba(0, 255, 65, 0.3)); }
+            50% { filter: drop-shadow(0 0 40px rgba(0, 255, 65, 0.6)); }
+        }
+
+        .subtitle {
+            color: var(--text-dim);
+            font-size: 0.9rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+        }
+
+        .grid-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 2rem;
+            position: relative;
+            overflow: hidden;
+            animation: fadeIn 0.8s ease-out backwards;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--primary), transparent);
+            animation: shimmer 3s ease-in-out infinite;
+        }
+
+        @keyframes shimmer {
+            0%, 100% { transform: translateX(-100%); }
+            50% { transform: translateX(100%); }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .card:nth-child(1) { animation-delay: 0.1s; }
+        .card:nth-child(2) { animation-delay: 0.2s; }
+        .card:nth-child(3) { animation-delay: 0.3s; }
+        .card:nth-child(4) { animation-delay: 0.4s; }
+
+        h2 {
+            font-family: 'Orbitron', sans-serif;
+            color: var(--primary);
+            margin-bottom: 1.5rem;
+            font-size: 1.3rem;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .input-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-dim);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--bg-dark);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(0, 255, 65, 0.1);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: var(--bg-dark);
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 6px;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .btn:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 255, 65, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: var(--bg-dark);
+            border: 1px solid var(--primary);
+            color: var(--primary);
+            margin-left: 1rem;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--accent), #ff3366);
+            margin-left: 0.5rem;
+        }
+
+        .load-item, .section-item {
+            background: var(--bg-dark);
+            border: 1px solid var(--border);
+            border-left: 3px solid var(--primary);
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .load-item:hover, .section-item:hover {
+            border-left-color: var(--secondary);
+            transform: translateX(5px);
+        }
+
+        .item-info {
+            flex: 1;
+            font-size: 0.85rem;
+        }
+
+        .item-label {
+            color: var(--primary);
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .item-detail {
+            color: var(--text-dim);
+        }
+
+        .visualization {
+            grid-column: 1 / -1;
+            min-height: 400px;
+        }
+
+        canvas {
+            width: 100%;
+            height: 400px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--bg-dark);
+        }
+
+        .results {
+            grid-column: 1 / -1;
+        }
+
+        .result-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .result-box {
+            background: var(--bg-dark);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 1.5rem;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .result-box::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(0, 255, 65, 0.05), transparent);
+            pointer-events: none;
+        }
+
+        .result-label {
+            color: var(--text-dim);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 0.5rem;
+        }
+
+        .result-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--primary);
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .result-unit {
+            font-size: 0.9rem;
+            color: var(--text-dim);
+            margin-left: 0.25rem;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-dim);
+            font-style: italic;
+        }
+
+        @media (max-width: 968px) {
+            .grid-layout {
+                grid-template-columns: 1fr;
+            }
+
+            h1 {
+                font-size: 2.5rem;
+            }
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--primary);
+            margin-right: 0.5rem;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.8); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Beam Analyzer</h1>
+            <p class="subtitle"><span class="status-indicator"></span>Structural Analysis System v2.1</p>
+        </header>
+
+        <div class="grid-layout">
+            <!-- Beam Properties -->
+            <div class="card">
+                <h2>Beam Properties</h2>
+                <div class="input-group">
+                    <label>Beam Length (m)</label>
+                    <input type="number" id="beamLength" value="10" min="1" step="0.1">
+                </div>
+                <div class="input-group">
+                    <label>Support Type</label>
+                    <select id="supportType">
+                        <option value="simple">Simply Supported</option>
+                        <option value="cantilever">Cantilever</option>
+                        <option value="fixed">Fixed-Fixed</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Add Loads -->
+            <div class="card">
+                <h2>Add Loads</h2>
+                <div class="input-group">
+                    <label>Load Type</label>
+                    <select id="loadType">
+                        <option value="point">Point Load</option>
+                        <option value="distributed">Distributed Load</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Magnitude (kN or kN/m)</label>
+                    <input type="number" id="loadMagnitude" value="50" step="0.1">
+                </div>
+                <div class="input-group" id="pointLoadPosition">
+                    <label>Position (m from left)</label>
+                    <input type="number" id="loadPosition" value="5" min="0" step="0.1">
+                </div>
+                <div class="input-group" id="distributedLoadRange" style="display: none;">
+                    <label>Start Position (m)</label>
+                    <input type="number" id="loadStart" value="0" min="0" step="0.1">
+                    <label style="margin-top: 0.5rem;">End Position (m)</label>
+                    <input type="number" id="loadEnd" value="10" min="0" step="0.1">
+                </div>
+                <button class="btn" onclick="addLoad()">Add Load</button>
+            </div>
+
+            <!-- Applied Loads -->
+            <div class="card">
+                <h2>Applied Loads</h2>
+                <div id="loadsList">
+                    <div class="empty-state">No loads applied yet</div>
+                </div>
+            </div>
+
+            <!-- Beam Sections -->
+            <div class="card">
+                <h2>Beam Section</h2>
+                <div class="input-group">
+                    <label>Section Type</label>
+                    <select id="sectionType">
+                        <option value="rectangular">Rectangular</option>
+                        <option value="i-beam">I-Beam</option>
+                        <option value="circular">Circular</option>
+                    </select>
+                </div>
+                <div id="rectangularSection">
+                    <div class="input-group">
+                        <label>Width (mm)</label>
+                        <input type="number" id="rectWidth" value="200" min="1">
+                    </div>
+                    <div class="input-group">
+                        <label>Height (mm)</label>
+                        <input type="number" id="rectHeight" value="400" min="1">
+                    </div>
+                </div>
+                <div id="iBeamSection" style="display: none;">
+                    <div class="input-group">
+                        <label>Flange Width (mm)</label>
+                        <input type="number" id="flangeWidth" value="200" min="1">
+                    </div>
+                    <div class="input-group">
+                        <label>Flange Thickness (mm)</label>
+                        <input type="number" id="flangeThickness" value="15" min="1">
+                    </div>
+                    <div class="input-group">
+                        <label>Web Height (mm)</label>
+                        <input type="number" id="webHeight" value="400" min="1">
+                    </div>
+                    <div class="input-group">
+                        <label>Web Thickness (mm)</label>
+                        <input type="number" id="webThickness" value="10" min="1">
+                    </div>
+                </div>
+                <div id="circularSection" style="display: none;">
+                    <div class="input-group">
+                        <label>Diameter (mm)</label>
+                        <input type="number" id="diameter" value="300" min="1">
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label>Material</label>
+                    <select id="material">
+                        <option value="steel">Steel (E = 200 GPa)</option>
+                        <option value="concrete">Concrete (E = 25 GPa)</option>
+                        <option value="timber">Timber (E = 12 GPa)</option>
+                        <option value="aluminum">Aluminum (E = 70 GPa)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Visualization -->
+            <div class="card visualization">
+                <h2>Beam Visualization</h2>
+                <canvas id="beamCanvas"></canvas>
+            </div>
+
+            <!-- Results -->
+            <div class="card results">
+                <h2>Analysis Results</h2>
+                <button class="btn" onclick="analyzeBeam()">Run Analysis</button>
+                <button class="btn btn-secondary" onclick="clearAll()">Clear All</button>
+                <div id="resultsDisplay"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let loads = [];
+        let beamLength = 10;
+
+        // Toggle load input fields
+        document.getElementById('loadType').addEventListener('change', function() {
+            const isPoint = this.value === 'point';
+            document.getElementById('pointLoadPosition').style.display = isPoint ? 'block' : 'none';
+            document.getElementById('distributedLoadRange').style.display = isPoint ? 'none' : 'block';
+        });
+
+        // Toggle section input fields
+        document.getElementById('sectionType').addEventListener('change', function() {
+            document.getElementById('rectangularSection').style.display = 'none';
+            document.getElementById('iBeamSection').style.display = 'none';
+            document.getElementById('circularSection').style.display = 'none';
+            
+            if (this.value === 'rectangular') {
+                document.getElementById('rectangularSection').style.display = 'block';
+            } else if (this.value === 'i-beam') {
+                document.getElementById('iBeamSection').style.display = 'block';
+            } else if (this.value === 'circular') {
+                document.getElementById('circularSection').style.display = 'block';
+            }
+        });
+
+        function addLoad() {
+            const loadType = document.getElementById('loadType').value;
+            const magnitude = parseFloat(document.getElementById('loadMagnitude').value);
+            
+            const load = {
+                type: loadType,
+                magnitude: magnitude
+            };
+
+            if (loadType === 'point') {
+                load.position = parseFloat(document.getElementById('loadPosition').value);
+            } else {
+                load.start = parseFloat(document.getElementById('loadStart').value);
+                load.end = parseFloat(document.getElementById('loadEnd').value);
+            }
+
+            loads.push(load);
+            updateLoadsList();
+            drawBeam();
+        }
+
+        function removeLoad(index) {
+            loads.splice(index, 1);
+            updateLoadsList();
+            drawBeam();
+        }
+
+        function updateLoadsList() {
+            const loadsList = document.getElementById('loadsList');
+            
+            if (loads.length === 0) {
+                loadsList.innerHTML = '<div class="empty-state">No loads applied yet</div>';
+                return;
+            }
+
+            loadsList.innerHTML = loads.map((load, index) => {
+                let details = '';
+                if (load.type === 'point') {
+                    details = `${load.magnitude} kN at ${load.position} m`;
+                } else {
+                    details = `${load.magnitude} kN/m from ${load.start} m to ${load.end} m`;
+                }
+
+                return `
+                    <div class="load-item">
+                        <div class="item-info">
+                            <div class="item-label">${load.type === 'point' ? 'Point Load' : 'Distributed Load'}</div>
+                            <div class="item-detail">${details}</div>
+                        </div>
+                        <button class="btn btn-danger" onclick="removeLoad(${index})">×</button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function drawBeam() {
+            const canvas = document.getElementById('beamCanvas');
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width = canvas.offsetWidth;
+            const height = canvas.height = canvas.offsetHeight;
+            
+            beamLength = parseFloat(document.getElementById('beamLength').value);
+            const supportType = document.getElementById('supportType').value;
+
+            // Clear canvas
+            ctx.fillStyle = '#0a0e27';
+            ctx.fillRect(0, 0, width, height);
+
+            // Drawing parameters
+            const margin = 80;
+            const beamY = height / 2;
+            const beamStartX = margin;
+            const beamEndX = width - margin;
+            const beamWidth = beamEndX - beamStartX;
+            const scale = beamWidth / beamLength;
+
+            // Draw beam
+            ctx.strokeStyle = '#00ff41';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(beamStartX, beamY);
+            ctx.lineTo(beamEndX, beamY);
+            ctx.stroke();
+
+            // Draw supports
+            ctx.fillStyle = '#0066ff';
+            if (supportType === 'simple') {
+                // Left support (pin)
+                drawTriangle(ctx, beamStartX, beamY, 15);
+                // Right support (roller)
+                drawTriangle(ctx, beamEndX, beamY, 15);
+                drawCircle(ctx, beamEndX, beamY + 20, 5);
+            } else if (supportType === 'cantilever') {
+                // Fixed support at left
+                drawFixedSupport(ctx, beamStartX, beamY);
+            } else if (supportType === 'fixed') {
+                // Fixed supports at both ends
+                drawFixedSupport(ctx, beamStartX, beamY);
+                drawFixedSupport(ctx, beamEndX, beamY);
+            }
+
+            // Draw loads
+            loads.forEach(load => {
+                if (load.type === 'point') {
+                    const x = beamStartX + (load.position * scale);
+                    drawPointLoad(ctx, x, beamY - 60, load.magnitude);
+                } else {
+                    const startX = beamStartX + (load.start * scale);
+                    const endX = beamStartX + (load.end * scale);
+                    drawDistributedLoad(ctx, startX, endX, beamY - 60, load.magnitude);
+                }
+            });
+
+            // Draw dimensions
+            ctx.strokeStyle = '#8b93b8';
+            ctx.fillStyle = '#8b93b8';
+            ctx.font = '12px JetBrains Mono';
+            ctx.lineWidth = 1;
+            
+            // Beam length dimension
+            const dimY = height - 30;
+            ctx.beginPath();
+            ctx.moveTo(beamStartX, dimY);
+            ctx.lineTo(beamEndX, dimY);
+            ctx.stroke();
+            
+            // Dimension arrows
+            drawArrow(ctx, beamStartX, dimY, beamStartX + 10, dimY);
+            drawArrow(ctx, beamEndX, dimY, beamEndX - 10, dimY);
+            
+            ctx.textAlign = 'center';
+            ctx.fillText(`${beamLength} m`, (beamStartX + beamEndX) / 2, dimY - 5);
+        }
+
+        function drawTriangle(ctx, x, y, size) {
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(x - size, y + size * 1.5);
+            ctx.lineTo(x + size, y + size * 1.5);
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        function drawCircle(ctx, x, y, radius) {
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function drawFixedSupport(ctx, x, y) {
+            const size = 15;
+            ctx.fillRect(x - 3, y - size, 6, size);
+            
+            // Hatching
+            ctx.strokeStyle = '#0066ff';
+            ctx.lineWidth = 2;
+            for (let i = -20; i <= 20; i += 5) {
+                ctx.beginPath();
+                ctx.moveTo(x + i, y);
+                ctx.lineTo(x + i - 10, y + 15);
+                ctx.stroke();
+            }
+        }
+
+        function drawPointLoad(ctx, x, y, magnitude) {
+            // Arrow
+            ctx.strokeStyle = '#ff006e';
+            ctx.fillStyle = '#ff006e';
+            ctx.lineWidth = 2;
+            
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(x, y + 50);
+            ctx.stroke();
+            
+            // Arrowhead
+            ctx.beginPath();
+            ctx.moveTo(x, y + 50);
+            ctx.lineTo(x - 5, y + 40);
+            ctx.lineTo(x + 5, y + 40);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Label
+            ctx.font = 'bold 11px JetBrains Mono';
+            ctx.textAlign = 'center';
+            ctx.fillText(`${magnitude} kN`, x, y - 5);
+        }
+
+        function drawDistributedLoad(ctx, startX, endX, y, magnitude) {
+            ctx.strokeStyle = '#ff006e';
+            ctx.fillStyle = '#ff006e';
+            ctx.lineWidth = 2;
+            
+            // Draw multiple arrows
+            const numArrows = Math.max(3, Math.floor((endX - startX) / 30));
+            const spacing = (endX - startX) / numArrows;
+            
+            for (let i = 0; i <= numArrows; i++) {
+                const x = startX + i * spacing;
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.lineTo(x, y + 50);
+                ctx.stroke();
+                
+                ctx.beginPath();
+                ctx.moveTo(x, y + 50);
+                ctx.lineTo(x - 4, y + 42);
+                ctx.lineTo(x + 4, y + 42);
+                ctx.closePath();
+                ctx.fill();
+            }
+            
+            // Top line
+            ctx.beginPath();
+            ctx.moveTo(startX, y);
+            ctx.lineTo(endX, y);
+            ctx.stroke();
+            
+            // Label
+            ctx.font = 'bold 11px JetBrains Mono';
+            ctx.textAlign = 'center';
+            ctx.fillText(`${magnitude} kN/m`, (startX + endX) / 2, y - 10);
+        }
+
+        function drawArrow(ctx, x1, y1, x2, y2) {
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+            
+            const angle = Math.atan2(y2 - y1, x2 - x1);
+            ctx.beginPath();
+            ctx.moveTo(x2, y2);
+            ctx.lineTo(x2 - 8 * Math.cos(angle - Math.PI / 6), y2 - 8 * Math.sin(angle - Math.PI / 6));
+            ctx.lineTo(x2 - 8 * Math.cos(angle + Math.PI / 6), y2 - 8 * Math.sin(angle + Math.PI / 6));
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        function calculateMomentOfInertia() {
+            const sectionType = document.getElementById('sectionType').value;
+            let I = 0; // mm^4
+
+            if (sectionType === 'rectangular') {
+                const b = parseFloat(document.getElementById('rectWidth').value);
+                const h = parseFloat(document.getElementById('rectHeight').value);
+                I = (b * Math.pow(h, 3)) / 12;
+            } else if (sectionType === 'i-beam') {
+                const bf = parseFloat(document.getElementById('flangeWidth').value);
+                const tf = parseFloat(document.getElementById('flangeThickness').value);
+                const hw = parseFloat(document.getElementById('webHeight').value);
+                const tw = parseFloat(document.getElementById('webThickness').value);
+                
+                const h = hw + 2 * tf;
+                const I_total = (bf * Math.pow(h, 3)) / 12;
+                const I_void = ((bf - tw) * Math.pow(hw, 3)) / 12;
+                I = I_total - I_void;
+            } else if (sectionType === 'circular') {
+                const d = parseFloat(document.getElementById('diameter').value);
+                I = (Math.PI * Math.pow(d, 4)) / 64;
+            }
+
+            return I;
+        }
+
+        function getModulusOfElasticity() {
+            const material = document.getElementById('material').value;
+            const E_map = {
+                'steel': 200,
+                'concrete': 25,
+                'timber': 12,
+                'aluminum': 70
+            };
+            return E_map[material]; // GPa
+        }
+
+        function analyzeBeam() {
+            if (loads.length === 0) {
+                alert('Please add at least one load before analyzing');
+                return;
+            }
+
+            const L = beamLength;
+            const supportType = document.getElementById('supportType').value;
+            const I = calculateMomentOfInertia(); // mm^4
+            const E = getModulusOfElasticity(); // GPa
+            
+            // Convert to consistent units (N, m)
+            const I_m4 = I * 1e-12; // Convert mm^4 to m^4
+            const E_Pa = E * 1e9; // Convert GPa to Pa
+            const EI = E_Pa * I_m4; // N⋅m^2
+
+            // Calculate reactions and max moments/shears
+            let reactions = calculateReactions(supportType, L);
+            let maxShear = calculateMaxShear();
+            let maxMoment = calculateMaxMoment(supportType, L);
+            let maxDeflection = calculateMaxDeflection(supportType, L, EI);
+
+            displayResults({
+                reactions,
+                maxShear,
+                maxMoment,
+                maxDeflection,
+                I,
+                E,
+                EI
+            });
+        }
+
+        function calculateReactions(supportType, L) {
+            let R_left = 0, R_right = 0, M_left = 0;
+
+            if (supportType === 'simple') {
+                let sumMoments = 0;
+                let totalLoad = 0;
+
+                loads.forEach(load => {
+                    if (load.type === 'point') {
+                        sumMoments += load.magnitude * load.position;
+                        totalLoad += load.magnitude;
+                    } else {
+                        const loadLength = load.end - load.start;
+                        const totalDistLoad = load.magnitude * loadLength;
+                        const centroid = load.start + loadLength / 2;
+                        sumMoments += totalDistLoad * centroid;
+                        totalLoad += totalDistLoad;
+                    }
+                });
+
+                R_right = sumMoments / L;
+                R_left = totalLoad - R_right;
+            } else if (supportType === 'cantilever') {
+                loads.forEach(load => {
+                    if (load.type === 'point') {
+                        R_left += load.magnitude;
+                        M_left += load.magnitude * load.position;
+                    } else {
+                        const loadLength = load.end - load.start;
+                        const totalDistLoad = load.magnitude * loadLength;
+                        const centroid = load.start + loadLength / 2;
+                        R_left += totalDistLoad;
+                        M_left += totalDistLoad * centroid;
+                    }
+                });
+            }
+
+            return { R_left, R_right, M_left };
+        }
+
+        function calculateMaxShear() {
+            let maxShear = 0;
+
+            loads.forEach(load => {
+                if (load.type === 'point') {
+                    maxShear = Math.max(maxShear, Math.abs(load.magnitude));
+                } else {
+                    const loadLength = load.end - load.start;
+                    maxShear = Math.max(maxShear, Math.abs(load.magnitude * loadLength));
+                }
+            });
+
+            return maxShear;
+        }
+
+        function calculateMaxMoment(supportType, L) {
+            let maxMoment = 0;
+
+            if (supportType === 'simple') {
+                loads.forEach(load => {
+                    if (load.type === 'point') {
+                        const a = load.position;
+                        const b = L - a;
+                        const M = (load.magnitude * a * b) / L;
+                        maxMoment = Math.max(maxMoment, M);
+                    } else {
+                        const w = load.magnitude;
+                        const loadLength = load.end - load.start;
+                        const M = (w * Math.pow(loadLength, 2)) / 8;
+                        maxMoment = Math.max(maxMoment, M);
+                    }
+                });
+            } else if (supportType === 'cantilever') {
+                loads.forEach(load => {
+                    if (load.type === 'point') {
+                        const M = load.magnitude * load.position;
+                        maxMoment = Math.max(maxMoment, M);
+                    } else {
+                        const w = load.magnitude;
+                        const loadLength = load.end - load.start;
+                        const M = (w * Math.pow(loadLength, 2)) / 2;
+                        maxMoment = Math.max(maxMoment, M);
+                    }
+                });
+            }
+
+            return maxMoment;
+        }
+
+        function calculateMaxDeflection(supportType, L, EI) {
+            let maxDeflection = 0;
+
+            if (supportType === 'simple') {
+                loads.forEach(load => {
+                    if (load.type === 'point') {
+                        const P = load.magnitude * 1000; // Convert to N
+                        const a = load.position;
+                        const b = L - a;
+                        const delta = (P * a * b * (L*L - b*b) * Math.sqrt(3)) / (27 * EI * L);
+                        maxDeflection = Math.max(maxDeflection, Math.abs(delta));
+                    } else {
+                        const w = load.magnitude * 1000; // Convert to N/m
+                        const loadLength = load.end - load.start;
+                        const delta = (5 * w * Math.pow(loadLength, 4)) / (384 * EI);
+                        maxDeflection = Math.max(maxDeflection, Math.abs(delta));
+                    }
+                });
+            } else if (supportType === 'cantilever') {
+                loads.forEach(load => {
+                    if (load.type === 'point') {
+                        const P = load.magnitude * 1000; // Convert to N
+                        const a = load.position;
+                        const delta = (P * Math.pow(a, 3)) / (3 * EI);
+                        maxDeflection = Math.max(maxDeflection, Math.abs(delta));
+                    } else {
+                        const w = load.magnitude * 1000; // Convert to N/m
+                        const loadLength = load.end - load.start;
+                        const delta = (w * Math.pow(loadLength, 4)) / (8 * EI);
+                        maxDeflection = Math.max(maxDeflection, Math.abs(delta));
+                    }
+                });
+            }
+
+            return maxDeflection * 1000; // Convert to mm
+        }
+
+        function displayResults(results) {
+            const resultsDiv = document.getElementById('resultsDisplay');
+            
+            let html = '<div class="result-grid">';
+            
+            html += `
+                <div class="result-box">
+                    <div class="result-label">Left Reaction</div>
+                    <div class="result-value">${results.reactions.R_left.toFixed(2)}<span class="result-unit">kN</span></div>
+                </div>
+            `;
+            
+            if (results.reactions.R_right > 0) {
+                html += `
+                    <div class="result-box">
+                        <div class="result-label">Right Reaction</div>
+                        <div class="result-value">${results.reactions.R_right.toFixed(2)}<span class="result-unit">kN</span></div>
+                    </div>
+                `;
+            }
+            
+            if (results.reactions.M_left > 0) {
+                html += `
+                    <div class="result-box">
+                        <div class="result-label">Fixed Moment</div>
+                        <div class="result-value">${results.reactions.M_left.toFixed(2)}<span class="result-unit">kN⋅m</span></div>
+                    </div>
+                `;
+            }
+            
+            html += `
+                <div class="result-box">
+                    <div class="result-label">Max Shear</div>
+                    <div class="result-value">${results.maxShear.toFixed(2)}<span class="result-unit">kN</span></div>
+                </div>
+                <div class="result-box">
+                    <div class="result-label">Max Moment</div>
+                    <div class="result-value">${results.maxMoment.toFixed(2)}<span class="result-unit">kN⋅m</span></div>
+                </div>
+                <div class="result-box">
+                    <div class="result-label">Max Deflection</div>
+                    <div class="result-value">${results.maxDeflection.toFixed(2)}<span class="result-unit">mm</span></div>
+                </div>
+                <div class="result-box">
+                    <div class="result-label">Moment of Inertia</div>
+                    <div class="result-value">${(results.I / 1e6).toFixed(2)}<span class="result-unit">×10⁶ mm⁴</span></div>
+                </div>
+                <div class="result-box">
+                    <div class="result-label">Flexural Rigidity</div>
+                    <div class="result-value">${(results.EI / 1e6).toFixed(2)}<span class="result-unit">MN⋅m²</span></div>
+                </div>
+            `;
+            
+            html += '</div>';
+            resultsDiv.innerHTML = html;
+        }
+
+        function clearAll() {
+            loads = [];
+            updateLoadsList();
+            drawBeam();
+            document.getElementById('resultsDisplay').innerHTML = '';
+        }
+
+        // Initialize
+        window.addEventListener('load', () => {
+            drawBeam();
+        });
+
+        window.addEventListener('resize', () => {
+            drawBeam();
+        });
+    </script>
+</body>
+</html>

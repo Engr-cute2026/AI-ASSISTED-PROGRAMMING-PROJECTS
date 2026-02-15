@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Steel Pipe Rack Connection Design - AISC 360-16 LRFD</title>
+<style>
+    body {
+        font-family: Arial;
+        margin: 40px;
+        background: #f4f6f8;
+    }
+    h2 { color: #1a4d7a; }
+    input {
+        width: 120px;
+        padding: 5px;
+        margin: 4px 0;
+    }
+    button {
+        padding: 8px 15px;
+        margin-top: 10px;
+        background: #1a4d7a;
+        color: white;
+        border: none;
+        cursor: pointer;
+    }
+    .result {
+        margin-top: 20px;
+        padding: 15px;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+    }
+</style>
+</head>
+<body>
+
+<h2>Steel Pipe Rack Shear Connection Design<br>
+Based on AISC 360-16 LRFD</h2>
+
+<h3>Factored Load</h3>
+Factored Shear Vu (kN): <input type="number" id="Vu" value="250"><br>
+
+<h3>Bolt Properties</h3>
+Bolt Diameter db (mm): <input type="number" id="db" value="20"><br>
+Bolt Fu (MPa): <input type="number" id="Fub" value="830"><br>
+Number of Bolts (n): <input type="number" id="nbolts" value="4"><br>
+
+<h3>Connected Plate Properties</h3>
+Plate Thickness t (mm): <input type="number" id="t" value="10"><br>
+Plate Fu (MPa): <input type="number" id="Fu" value="450"><br>
+Edge Distance e (mm): <input type="number" id="edge" value="40"><br>
+Bolt Spacing s (mm): <input type="number" id="spacing" value="60"><br>
+
+<br>
+<button onclick="designConnection()">Run LRFD Design</button>
+
+<div class="result" id="output"></div>
+
+<script>
+
+function designConnection(){
+
+    const Vu = parseFloat(document.getElementById("Vu").value);
+    const db = parseFloat(document.getElementById("db").value);
+    const Fub = parseFloat(document.getElementById("Fub").value);
+    const n = parseFloat(document.getElementById("nbolts").value);
+    const t = parseFloat(document.getElementById("t").value);
+    const Fu = parseFloat(document.getElementById("Fu").value);
+    const e = parseFloat(document.getElementById("edge").value);
+    const s = parseFloat(document.getElementById("spacing").value);
+
+    const phi = 0.75;
+
+    // Bolt Area
+    const Ab = Math.PI * Math.pow(db,2) / 4;
+
+    // Bolt Shear Strength (AISC J3.6)
+    const Vn_bolt = 0.6 * Fub * Ab / 1000; // kN per bolt
+    const phiVn_total = phi * Vn_bolt * n;
+
+    // Bearing Strength (AISC J3.10)
+    const Rn_bearing = 1.2 * e * t * Fu / 1000;
+    const phiRn_bearing = phi * Rn_bearing * n;
+
+    // Block Shear (Simplified AISC J4.3)
+    const Agv = t * (2*e + (n-1)*s);
+    const Anv = Agv;
+    const Rn_block = 0.6 * Fu * Anv / 1000;
+    const phiRn_block = phi * Rn_block;
+
+    // Governing Capacity
+    const capacity = Math.min(phiVn_total, phiRn_bearing, phiRn_block);
+
+    let status = capacity >= Vu ? 
+        "<span style='color:green;font-weight:bold;'>SAFE</span>" :
+        "<span style='color:red;font-weight:bold;'>NOT SAFE</span>";
+
+    document.getElementById("output").innerHTML =
+        "<h3>Results</h3>" +
+        "Bolt Shear Capacity φVn = " + phiVn_total.toFixed(2) + " kN<br>" +
+        "Bolt Bearing Capacity φRn = " + phiRn_bearing.toFixed(2) + " kN<br>" +
+        "Block Shear Capacity φRn = " + phiRn_block.toFixed(2) + " kN<br><br>" +
+        "<strong>Governing Capacity = " + capacity.toFixed(2) + " kN</strong><br>" +
+        "Factored Demand Vu = " + Vu + " kN<br><br>" +
+        "Connection Status: " + status;
+}
+
+</script>
+
+</body>
+</html>
