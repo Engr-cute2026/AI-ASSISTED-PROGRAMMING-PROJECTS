@@ -1,0 +1,15 @@
+C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+C>>
+C>>  Staad Filename: C:\Users\e1049\OneDrive\Documents\Ron\AI-Assisted Python Programming Datasets\VS Programming\Day 2\AI-ASSISTED-PROGRAMMING-PROJECTS\FEBRUARY 14-15\ABERIN\Std Model\abe_model.std
+C>>
+C>>  Error Filename: C:\Users\e1049\OneDrive\Documents\Ron\AI-Assisted Python Programming Datasets\VS Programming\Day 2\AI-ASSISTED-PROGRAMMING-PROJECTS\FEBRUARY 14-15\ABERIN\Std Model\abe_model.err
+C>>
+C>>  Date: Sunday, February 15, 2026     Time: 07 : 34 : 47 AM
+C>>
+C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+W=>    56: 1 0.75 2 0.75 1 0.75 2 0.75
+*=> Warning, load case 1 referenced multiple times in load combination 3.
+W=>    56: 1 0.75 2 0.75 1 0.75 2 0.75
+*=> Warning, load case 2 referenced multiple times in load combination 3.
+E=>    57: LOAD COMB 3 75 PERCENT DL LL WL
+*=> Error, Load Comb # 3 NOT valid. Primary Load # maybe higher than Comb #.
